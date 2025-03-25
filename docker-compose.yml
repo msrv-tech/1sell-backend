@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:14
+    environment:
+      POSTGRES_DB: shop_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - backend
+
+  redis:
+    image: redis:7
+    networks:
+      - backend
+
+  app:
+    build: .
+    environment:
+      - APP_ENV=prod
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - backend
+
+  celery:
+    build: .
+    command: celery -A app.tasks.sync_1c worker --loglevel=info
+    env_file:
+      - .env
+    depends_on:
+      - redis
+    networks:
+      - backend
+
+volumes:
+  postgres_data:
+
+networks:
+  backend:
